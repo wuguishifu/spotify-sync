@@ -1,6 +1,10 @@
+use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
+use axum::extract::connect_info::ConnectInfo;
 use axum::extract::{Path as AxumPath, State};
 use axum::http::{header, StatusCode};
 use axum::response::IntoResponse;
@@ -18,10 +22,24 @@ pub struct SyncFile {
   pub path: PathBuf,
 }
 
+struct ClientActivity {
+  received_ids: HashSet<usize>,
+  last_seen: Instant,
+}
+
+#[derive(Clone, Serialize)]
+pub struct ClientStatus {
+  pub ip: String,
+  pub files_received: usize,
+  pub total_files: usize,
+  pub seconds_since_last_seen: u64,
+}
+
 #[derive(Default)]
 pub struct SyncServerState {
   files: Mutex<Vec<SyncFile>>,
   shutdown: Mutex<Option<oneshot::Sender<()>>>,
+  clients: Mutex<HashMap<String, ClientActivity>>,
 }
 
 pub type SharedState = Arc<SyncServerState>;
@@ -73,13 +91,32 @@ struct ManifestResponse {
   files: Vec<SyncFile>,
 }
 
-async fn get_manifest(State(state): State<SharedState>) -> Json<ManifestResponse> {
+async fn touch_client(state: &SharedState, addr: SocketAddr, received_id: Option<usize>) {
+  let mut clients = state.clients.lock().await;
+  let activity = clients
+    .entry(addr.ip().to_string())
+    .or_insert_with(|| ClientActivity {
+      received_ids: HashSet::new(),
+      last_seen: Instant::now(),
+    });
+  activity.last_seen = Instant::now();
+  if let Some(id) = received_id {
+    activity.received_ids.insert(id);
+  }
+}
+
+async fn get_manifest(
+  State(state): State<SharedState>,
+  ConnectInfo(addr): ConnectInfo<SocketAddr>,
+) -> Json<ManifestResponse> {
+  touch_client(&state, addr, None).await;
   let files = state.files.lock().await.clone();
   Json(ManifestResponse { files })
 }
 
 async fn get_file(
   State(state): State<SharedState>,
+  ConnectInfo(addr): ConnectInfo<SocketAddr>,
   AxumPath(id): AxumPath<usize>,
 ) -> Result<impl IntoResponse, StatusCode> {
   let path = {
@@ -92,9 +129,28 @@ async fn get_file(
   };
 
   match tokio::fs::read(&path).await {
-    Ok(bytes) => Ok(([(header::CONTENT_TYPE, "application/octet-stream")], bytes)),
+    Ok(bytes) => {
+      touch_client(&state, addr, Some(id)).await;
+      Ok(([(header::CONTENT_TYPE, "application/octet-stream")], bytes))
+    }
     Err(_) => Err(StatusCode::GONE),
   }
+}
+
+/// Snapshots current per-client sync progress for display in the desktop UI.
+pub async fn get_clients(state: &SharedState) -> Vec<ClientStatus> {
+  let total_files = state.files.lock().await.len();
+  let clients = state.clients.lock().await;
+
+  clients
+    .iter()
+    .map(|(ip, activity)| ClientStatus {
+      ip: ip.clone(),
+      files_received: activity.received_ids.len(),
+      total_files,
+      seconds_since_last_seen: activity.last_seen.elapsed().as_secs(),
+    })
+    .collect()
 }
 
 /// Replaces the currently-served file list, binds an ephemeral port, and
@@ -103,6 +159,10 @@ pub async fn start_server(state: SharedState, files: Vec<SyncFile>) -> Result<u1
   {
     let mut guard = state.files.lock().await;
     *guard = files;
+  }
+  {
+    let mut clients = state.clients.lock().await;
+    clients.clear();
   }
 
   let app = Router::new()
@@ -124,11 +184,14 @@ pub async fn start_server(state: SharedState, files: Vec<SyncFile>) -> Result<u1
   }
 
   tauri::async_runtime::spawn(async move {
-    let _ = axum::serve(listener, app)
-      .with_graceful_shutdown(async {
-        let _ = rx.await;
-      })
-      .await;
+    let _ = axum::serve(
+      listener,
+      app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(async {
+      let _ = rx.await;
+    })
+    .await;
   });
 
   Ok(port)

@@ -3,7 +3,14 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { BarcodeScanningResult } from 'expo-camera';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useState } from 'react';
-import { Alert, Button, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Button,
+  FlatList,
+  Text,
+  View,
+} from 'react-native';
 
 type Status =
   | 'idle'
@@ -13,6 +20,8 @@ type Status =
   | 'exporting'
   | 'done'
   | 'error';
+
+type FileStatus = 'pending' | 'downloading' | 'done' | 'error';
 
 interface ManifestFile {
   id: number;
@@ -24,10 +33,35 @@ interface Manifest {
   files: ManifestFile[];
 }
 
+const STATUS_LABEL: Record<Status, string> = {
+  idle: 'Idle',
+  scanning: 'Scanning',
+  connecting: 'Connecting to desktop app…',
+  downloading: 'Downloading files',
+  exporting: 'Preparing export…',
+  done: 'Done',
+  error: 'Something went wrong',
+};
+
+const FILE_STATUS_LABEL: Record<FileStatus, string> = {
+  pending: 'Waiting…',
+  downloading: 'Downloading…',
+  done: 'Done',
+  error: 'Failed',
+};
+
 export default function Index() {
   const [status, setStatus] = useState<Status>('idle');
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [files, setFiles] = useState<ManifestFile[]>([]);
+  const [fileStatuses, setFileStatuses] = useState<Record<number, FileStatus>>(
+    {},
+  );
+
+  function setFileStatus(id: number, fileStatus: FileStatus) {
+    setFileStatuses((prev) => ({ ...prev, [id]: fileStatus }));
+  }
 
   async function handleScanQrCode() {
     if (!permission?.granted) {
@@ -41,6 +75,8 @@ export default function Index() {
       }
     }
     setScanned(false);
+    setFiles([]);
+    setFileStatuses({});
     setStatus('scanning');
   }
 
@@ -52,6 +88,12 @@ export default function Index() {
     try {
       setStatus('connecting');
       const manifest = await fetchManifest(serverUrl);
+      setFiles(manifest.files);
+      const initialStatuses: Record<number, FileStatus> = {};
+      for (const file of manifest.files) {
+        initialStatuses[file.id] = 'pending';
+      }
+      setFileStatuses(initialStatuses);
 
       setStatus('downloading');
       const stagedUris = await downloadFiles(serverUrl, manifest);
@@ -79,14 +121,19 @@ export default function Index() {
   async function fetchManifest(serverUrl: string): Promise<Manifest> {
     const response = await fetch(`${serverUrl}/manifest`);
     if (!response.ok) {
-      throw new Error(`Failed to reach desktop app (status ${response.status})`);
+      throw new Error(
+        `Failed to reach desktop app (status ${response.status})`,
+      );
     }
     return response.json();
   }
 
   // Downloads every file in the manifest into a scratch folder in our own
   // sandbox -- these are the files that arrived over the LAN sync transport.
-  async function downloadFiles(serverUrl: string, manifest: Manifest): Promise<string[]> {
+  async function downloadFiles(
+    serverUrl: string,
+    manifest: Manifest,
+  ): Promise<string[]> {
     const stagingDir = `${FileSystem.cacheDirectory}sync-staging/`;
     await FileSystem.makeDirectoryAsync(stagingDir, {
       intermediates: true,
@@ -94,22 +141,29 @@ export default function Index() {
 
     const uris: string[] = [];
     for (const file of manifest.files) {
+      setFileStatus(file.id, 'downloading');
       const destination = `${stagingDir}${file.name}`;
-      const result = await FileSystem.downloadAsync(
-        `${serverUrl}/files/${file.id}`,
-        destination,
-      );
-      if (result.status !== 200) {
-        throw new Error(`Failed to download ${file.name}`);
+      try {
+        const result = await FileSystem.downloadAsync(
+          `${serverUrl}/files/${file.id}`,
+          destination,
+        );
+        if (result.status !== 200) {
+          throw new Error(`Failed to download ${file.name}`);
+        }
+        setFileStatus(file.id, 'done');
+        uris.push(destination);
+      } catch (err) {
+        setFileStatus(file.id, 'error');
+        throw err;
       }
-      uris.push(destination);
     }
     return uris;
   }
 
   if (status === 'scanning') {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: 'white' }}>
         <CameraView
           style={{ flex: 1 }}
           facing="back"
@@ -119,6 +173,65 @@ export default function Index() {
         <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center' }}>
           <Button title="Cancel" onPress={() => setStatus('idle')} />
         </View>
+      </View>
+    );
+  }
+
+  if (
+    status === 'connecting' ||
+    status === 'downloading' ||
+    status === 'exporting'
+  ) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          paddingTop: 80,
+          paddingHorizontal: 20,
+          gap: 16,
+          backgroundColor: 'white',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <ActivityIndicator />
+          <Text style={{ fontSize: 16, fontWeight: '600' }}>
+            {STATUS_LABEL[status]}
+          </Text>
+        </View>
+        <FlatList
+          data={files}
+          keyExtractor={(file) => String(file.id)}
+          renderItem={({ item }) => {
+            const fileStatus = fileStatuses[item.id] ?? 'pending';
+            return (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingVertical: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#e5e5e5',
+                }}
+              >
+                <Text numberOfLines={1} style={{ flex: 1, marginRight: 8 }}>
+                  {item.name}
+                </Text>
+                <Text
+                  style={{
+                    color:
+                      fileStatus === 'done'
+                        ? '#1a9d4b'
+                        : fileStatus === 'error'
+                          ? '#d1373f'
+                          : '#666',
+                  }}
+                >
+                  {FILE_STATUS_LABEL[fileStatus]}
+                </Text>
+              </View>
+            );
+          }}
+        />
       </View>
     );
   }

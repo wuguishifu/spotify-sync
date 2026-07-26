@@ -32,12 +32,23 @@ async fn stop_sync_server(state: tauri::State<'_, SharedState>) -> Result<(), St
   Ok(())
 }
 
+#[tauri::command]
+async fn get_sync_clients(
+  state: tauri::State<'_, SharedState>,
+) -> Result<Vec<sync_server::ClientStatus>, String> {
+  Ok(sync_server::get_clients(state.inner()).await)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
     .manage(SharedState::default())
-    .invoke_handler(tauri::generate_handler![start_sync_server, stop_sync_server])
+    .invoke_handler(tauri::generate_handler![
+      start_sync_server,
+      stop_sync_server,
+      get_sync_clients
+    ])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
