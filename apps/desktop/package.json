@@ -1,0 +1,13 @@
+{
+  "name": "desktop",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "next": "*",
+    "react": "*",
+    "react-dom": "*",
+    "tw-animate-css": "*",
+    "tailwindcss": "*",
+    "@tailwindcss/postcss": "*"
+  }
+}
