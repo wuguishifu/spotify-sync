@@ -1,0 +1,12 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["document_picker"],
+  "ios": {
+    "iosModuleName": "DocumentPicker"
+  },
+  "android": {
+    "androidNamespace": ["document_picker"],
+    "androidCxxLibName": "DocumentPicker"
+  },
+  "autolinking": {}
+}

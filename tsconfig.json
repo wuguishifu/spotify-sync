@@ -5,6 +5,9 @@
   "references": [
     {
       "path": "./apps/mobile"
+    },
+    {
+      "path": "./libs/document-picker"
     }
   ],
   "compilerOptions": {}
