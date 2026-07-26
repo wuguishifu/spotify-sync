@@ -1,0 +1,9 @@
+{
+  "name": "Spotify Sync",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/desktop",
+  "projectType": "application",
+  "tags": ["scope:client"],
+  "// targets": "to see all targets run: nx show project Spotify Sync --web",
+  "targets": {}
+}

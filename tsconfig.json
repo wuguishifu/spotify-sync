@@ -8,6 +8,9 @@
     },
     {
       "path": "./libs/document-picker"
+    },
+    {
+      "path": "./apps/desktop"
     }
   ],
   "compilerOptions": {}
