@@ -9,11 +9,6 @@ const nextConfig = {
   output: 'export',
   turbopack: {
     root: path.resolve(__dirname, '../..'),
-    // tw-animate-css only exposes its CSS via a `style` export condition,
-    // which Turbopack doesn't resolve — alias straight to the file on disk.
-    resolveAlias: {
-      'tw-animate-css': '../../node_modules/tw-animate-css/dist/tw-animate.css',
-    },
   },
 };
 

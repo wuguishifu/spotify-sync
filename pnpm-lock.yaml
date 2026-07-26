@@ -216,6 +216,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@tailwindcss/postcss':
+        specifier: '*'
+        version: 4.3.3
       next:
         specifier: '*'
         version: 16.1.7(@babel/core@7.29.7)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.102.0)

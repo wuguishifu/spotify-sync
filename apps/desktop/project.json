@@ -41,7 +41,8 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "nx dev desktop"
+        "command": "pnpm tauri dev",
+        "cwd": "apps/desktop"
       }
     },
     "dev": {
