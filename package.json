@@ -43,7 +43,10 @@
     "@expo/metro-runtime": "~56.0.14",
     "@expo/vector-icons": "~15.1.0",
     "expo": "~56.0.0",
+    "expo-asset": "~56.0.21",
     "expo-constants": "~56.0.22",
+    "expo-file-system": "~56.0.8",
+    "expo-font": "~56.0.7",
     "expo-linking": "~56.0.16",
     "expo-router": "~56.2.16",
     "expo-splash-screen": "~56.0.10",
@@ -54,7 +57,7 @@
     "react-native": "0.85.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-svg": "15.12.1",
+    "react-native-svg": "15.15.4",
     "react-native-svg-transformer": "~1.5.1",
     "react-native-web": "~0.21.0"
   }

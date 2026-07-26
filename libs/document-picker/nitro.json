@@ -8,5 +8,16 @@
     "androidNamespace": ["document_picker"],
     "androidCxxLibName": "DocumentPicker"
   },
-  "autolinking": {}
+  "autolinking": {
+    "DocumentPicker": {
+      "ios": {
+        "implementationClassName": "DocumentPicker",
+        "language": "swift"
+      },
+      "android": {
+        "implementationClassName": "DocumentPicker",
+        "language": "kotlin"
+      }
+    }
+  }
 }
