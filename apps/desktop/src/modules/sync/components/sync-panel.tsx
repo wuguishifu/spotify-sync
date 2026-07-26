@@ -106,7 +106,9 @@ export function SyncPanel({ paths }: SyncPanelProps) {
                 <span className="flex items-center gap-1.5">
                   <Smartphone className="size-3.5" /> {client.ip}
                 </span>
-                <span className="text-muted-foreground">{describeClient(client)}</span>
+                <span className="text-muted-foreground">
+                  {describeClient(client)}
+                </span>
               </li>
             ))}
           </ul>
@@ -125,7 +127,11 @@ export function SyncPanel({ paths }: SyncPanelProps) {
         onClick={handleStart}
         disabled={paths.length === 0 || status === 'starting'}
       >
-        {status === 'starting' ? <Loader2 className="animate-spin" /> : <Radio />}
+        {status === 'starting' ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <Radio />
+        )}
         Start sync
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
