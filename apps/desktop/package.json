@@ -1,10 +1,10 @@
 {
-  "name": "@org/Spotify Sync",
+  "name": "desktop",
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "next": "~16.1.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "next": "*",
+    "react": "*",
+    "react-dom": "*"
   }
 }

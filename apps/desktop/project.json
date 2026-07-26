@@ -1,9 +1,17 @@
 {
-  "name": "Spotify Sync",
+  "name": "desktop",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/desktop",
   "projectType": "application",
   "tags": ["scope:client"],
   "// targets": "to see all targets run: nx show project Spotify Sync --web",
-  "targets": {}
+  "targets": {
+    "shadcn:add": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/desktop",
+        "command": "pnpm dlx shadcn@latest add {args}"
+      }
+    }
+  }
 }
