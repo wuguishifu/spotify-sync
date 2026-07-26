@@ -1,0 +1,32 @@
+{
+  "name": "mobile",
+  "version": "0.0.1",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . apps/mobile"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "*",
+    "@expo/metro": "*",
+    "@ss/document-picker": "workspace:*",
+    "@testing-library/react-native": "*",
+    "expo": "*",
+    "expo-splash-screen": "*",
+    "expo-status-bar": "*",
+    "expo-system-ui": "*",
+    "jest-expo": "*",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-svg": "*",
+    "react-native-svg-transformer": "*",
+    "react-native-web": "*",
+    "expo-asset": "*",
+    "expo-file-system": "*",
+    "@expo/metro-runtime": "*",
+    "expo-constants": "*",
+    "expo-font": "*",
+    "expo-linking": "*",
+    "expo-router": "*"
+  }
+}
