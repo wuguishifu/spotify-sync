@@ -5,6 +5,8 @@
   "dependencies": {
     "next": "*",
     "react": "*",
-    "react-dom": "*"
+    "react-dom": "*",
+    "tw-animate-css": "*",
+    "tailwindcss": "*"
   }
 }

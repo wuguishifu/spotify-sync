@@ -34,5 +34,10 @@
     "**/*.jsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../libs/document-picker/tsconfig.lib.json"
+    }
   ]
 }

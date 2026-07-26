@@ -12,6 +12,47 @@
         "cwd": "apps/desktop",
         "command": "pnpm dlx shadcn@latest add {args}"
       }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^typecheck"],
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/tsconfig.base.json",
+        {
+          "dependentTasksOutputFiles": "**/*.{d.ts,tsbuildinfo}",
+          "transitive": true
+        },
+        { "fileset": "{projectRoot}/**/*.d.ts", "dependencies": true },
+        { "externalDependencies": ["next", "typescript"] }
+      ],
+      "outputs": [
+        "{projectRoot}/.next/types/**/*.ts",
+        "{projectRoot}/dist/tsconfig.tsbuildinfo"
+      ],
+      "syncGenerators": ["@nx/js:typescript-sync"],
+      "options": {
+        "cwd": "apps/athena",
+        "command": "next typegen && tsc --project tsconfig.json --noEmit"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx dev desktop"
+      }
+    },
+    "dev": {
+      "options": {
+        "port": 3002
+      }
+    },
+    "start": {
+      "options": {
+        "port": 3002
+      }
     }
   }
 }
