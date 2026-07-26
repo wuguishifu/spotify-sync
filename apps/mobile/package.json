@@ -9,6 +9,7 @@
   "dependencies": {
     "@expo/vector-icons": "*",
     "@expo/metro": "*",
+    "@ss/document-picker": "workspace:*",
     "@testing-library/react-native": "*",
     "expo": "*",
     "expo-splash-screen": "*",

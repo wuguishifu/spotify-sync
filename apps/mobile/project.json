@@ -12,6 +12,13 @@
         "cwd": "apps/mobile/ios",
         "command": "pod install"
       }
+    },
+    "xcode": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/mobile/ios",
+        "command": "open -a Xcode SpotifySync.xcworkspace"
+      }
     }
   }
 }
