@@ -46,12 +46,12 @@
     },
     "dev": {
       "options": {
-        "port": 3002
+        "port": 3000
       }
     },
     "start": {
       "options": {
-        "port": 3002
+        "port": 3000
       }
     }
   }
