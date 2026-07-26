@@ -1,20 +1,60 @@
 import { documentPickerModule } from '@ss/document-picker';
-import { Asset } from 'expo-asset';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import type { BarcodeScanningResult } from 'expo-camera';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useState } from 'react';
 import { Alert, Button, Text, View } from 'react-native';
 
-const TEST_TRACKS = [require('../../assets/test-tracks/test.mp3')];
+type Status =
+  | 'idle'
+  | 'scanning'
+  | 'connecting'
+  | 'downloading'
+  | 'exporting'
+  | 'done'
+  | 'error';
 
-type Status = 'idle' | 'preparing' | 'exporting' | 'done' | 'error';
+interface ManifestFile {
+  id: number;
+  name: string;
+  size: number;
+}
+
+interface Manifest {
+  files: ManifestFile[];
+}
 
 export default function Index() {
   const [status, setStatus] = useState<Status>('idle');
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scanned, setScanned] = useState(false);
 
-  async function handleExport() {
+  async function handleScanQrCode() {
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert(
+          'Camera permission required',
+          "Enable camera access to scan the desktop app's QR code.",
+        );
+        return;
+      }
+    }
+    setScanned(false);
+    setStatus('scanning');
+  }
+
+  async function handleBarcodeScanned({ data }: BarcodeScanningResult) {
+    if (scanned) return;
+    setScanned(true);
+    const serverUrl = data;
+
     try {
-      setStatus('preparing');
-      const stagedUris = await stageBundledTracks();
+      setStatus('connecting');
+      const manifest = await fetchManifest(serverUrl);
+
+      setStatus('downloading');
+      const stagedUris = await downloadFiles(serverUrl, manifest);
 
       setStatus('exporting');
       const savedUris = await documentPickerModule.exportFilesToApp(stagedUris);
@@ -32,28 +72,55 @@ export default function Index() {
         setStatus('idle');
         return;
       }
-      Alert.alert('Export failed', String(err?.message ?? err));
+      Alert.alert('Sync failed', String(err?.message ?? err));
     }
   }
 
-  // Copies bundled test assets into a scratch folder in our own sandbox,
-  // standing in for "files that arrived over the LAN sync transport."
-  async function stageBundledTracks(): Promise<string[]> {
-    const stagingDir = `${FileSystem.cacheDirectory}export-staging/`;
+  async function fetchManifest(serverUrl: string): Promise<Manifest> {
+    const response = await fetch(`${serverUrl}/manifest`);
+    if (!response.ok) {
+      throw new Error(`Failed to reach desktop app (status ${response.status})`);
+    }
+    return response.json();
+  }
+
+  // Downloads every file in the manifest into a scratch folder in our own
+  // sandbox -- these are the files that arrived over the LAN sync transport.
+  async function downloadFiles(serverUrl: string, manifest: Manifest): Promise<string[]> {
+    const stagingDir = `${FileSystem.cacheDirectory}sync-staging/`;
     await FileSystem.makeDirectoryAsync(stagingDir, {
       intermediates: true,
-    }).catch(() => {});
+    }).catch(() => undefined);
 
     const uris: string[] = [];
-    for (const mod of TEST_TRACKS) {
-      const asset = Asset.fromModule(mod);
-      await asset.downloadAsync();
-
-      const destination = `${stagingDir}${asset.name}.${asset.type}`;
-      await FileSystem.copyAsync({ from: asset.localUri!, to: destination });
+    for (const file of manifest.files) {
+      const destination = `${stagingDir}${file.name}`;
+      const result = await FileSystem.downloadAsync(
+        `${serverUrl}/files/${file.id}`,
+        destination,
+      );
+      if (result.status !== 200) {
+        throw new Error(`Failed to download ${file.name}`);
+      }
       uris.push(destination);
     }
     return uris;
+  }
+
+  if (status === 'scanning') {
+    return (
+      <View style={{ flex: 1 }}>
+        <CameraView
+          style={{ flex: 1 }}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={handleBarcodeScanned}
+        />
+        <View style={{ position: 'absolute', bottom: 40, alignSelf: 'center' }}>
+          <Button title="Cancel" onPress={() => setStatus('idle')} />
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -66,7 +133,7 @@ export default function Index() {
       }}
     >
       <Text style={{ fontSize: 16 }}>Status: {status}</Text>
-      <Button title="Export test tracks to Files" onPress={handleExport} />
+      <Button title="Scan QR code to sync" onPress={handleScanQrCode} />
     </View>
   );
 }

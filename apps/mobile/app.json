@@ -12,7 +12,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.wuguishifu.spotify-sync",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "Spotify Sync needs to access your local network to receive files from the desktop app on the same Wi-Fi network.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
       },
       "appleTeamId": "PNJC8V54R7"
     },
@@ -39,7 +43,13 @@
       ],
       "expo-router",
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Spotify Sync needs camera access to scan the QR code shown on your desktop app."
+        }
+      ]
     ]
   }
 }

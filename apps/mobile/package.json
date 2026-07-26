@@ -21,7 +21,7 @@
     "react-native-svg": "*",
     "react-native-svg-transformer": "*",
     "react-native-web": "*",
-    "expo-asset": "*",
+    "expo-camera": "*",
     "expo-file-system": "*",
     "@expo/metro-runtime": "*",
     "expo-constants": "*",
